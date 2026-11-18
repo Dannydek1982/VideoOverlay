@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes">
+<style>*{box-sizing:border-box}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head><body>
+<title>Jaren 80-schil</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Monoton&family=Chakra+Petch:wght@400;600&family=VT323&display=swap">
+<style>
+/* Layout: one column, the VHS screen is the page; controls sit under it like the buttons of a video recorder. Single dark look on purpose. */
+:root {
+  --night: #120b1f;
+  --panel: #1d1330;
+  --line: #3a2a57;
+  --ink: #f4eefc;
+  --muted: #b7a8d1;
+  --hot: #ff3fa4;
+  --cyan: #2de2e6;
+  --sun: #ffb347;
+  --f-display: "Monoton", "Chakra Petch", system-ui, sans-serif;
+  --f-body: "Chakra Petch", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-osd: "VT323", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { background: var(--night); color: var(--ink); }
+body { font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
+.wrap {
+  max-width: 880px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+  display: grid; gap: 16px;
+}
+header { display: grid; gap: 4px; }
+h1 {
+  font-family: var(--f-display); font-weight: 400; margin: 0;
+  font-size: clamp(30px, 8vw, 52px); line-height: 1.1; letter-spacing: 0.02em;
+  color: var(--hot); text-shadow: 0 0 18px rgba(255, 63, 164, 0.55);
+  text-wrap: balance;
+}
+.lede { margin: 0; color: var(--muted); max-width: 62ch; }
+.screen {
+  position: relative; border-radius: 14px; overflow: hidden;
+  background: #000; border: 1px solid var(--line);
+  aspect-ratio: 16 / 9; max-width: 100%;
+  box-shadow: 0 0 0 6px var(--panel), 0 18px 40px rgba(0,0,0,0.5);
+}
+canvas#out { width: 100%; height: 100%; display: block; object-fit: contain; background: #000; }
+.start {
+  position: absolute; inset: 0; display: grid; place-content: center; gap: 14px;
+  text-align: center; padding: 20px;
+  background:
+    linear-gradient(180deg, rgba(18,11,31,0) 40%, rgba(255,63,164,0.18) 100%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.035) 0 2px, transparent 2px 4px);
+}
+.start .osd { font-family: var(--f-osd); font-size: 28px; color: var(--cyan); letter-spacing: 0.08em; }
+.start p { margin: 0; color: var(--muted); max-width: 40ch; justify-self: center; }
+.btns { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.btn {
+  font: 600 15px/1 var(--f-body); color: var(--night); background: var(--cyan);
+  border: 0; border-radius: 999px; padding: 13px 20px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.btn.alt { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--muted); }
+.btn.hot { background: var(--hot); color: #fff; }
+.btn:focus-visible, .tog input:focus-visible + span { outline: 3px solid var(--sun); outline-offset: 2px; }
+.btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.deck {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px;
+}
+.toggles { display: flex; flex-wrap: wrap; gap: 8px; }
+.tog { position: relative; }
+.tog input { position: absolute; opacity: 0; }
+.tog span {
+  display: inline-block; padding: 8px 12px; border-radius: 8px; cursor: pointer;
+  font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--muted); box-shadow: inset 0 0 0 1px var(--line);
+}
+.tog input:checked + span { color: var(--night); background: var(--sun); box-shadow: none; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.status { font-family: var(--f-osd); font-size: 20px; color: var(--cyan); min-height: 1.2em; margin: 0; }
+.status.err { color: var(--sun); }
+.found { display: grid; gap: 8px; }
+.found h2, .lib h2 { margin: 0; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 13px; padding: 4px 10px; border-radius: 999px; background: rgba(45,226,230,0.12); color: var(--cyan); }
+.chip.none { background: transparent; color: var(--muted); padding-left: 0; }
+.lib { display: grid; gap: 8px; }
+.lib table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.lib td { padding: 7px 8px 7px 0; border-top: 1px solid var(--line); vertical-align: top; }
+.lib td:first-child { color: var(--cyan); white-space: nowrap; width: 30%; }
+.note { color: var(--muted); font-size: 13px; margin: 0; }
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Jaren 80-schil</h1>
+    <p class="lede">Film de straat met je telefoon of kies een foto. De app herkent auto's, fietsen, mensen en meer, zet er een jaren 80-versie overheen en legt een VHS-sfeer over het beeld.</p>
+  </header>
+
+  <div class="screen" id="screen">
+    <canvas id="out" width="1280" height="720" aria-label="Beeld met jaren 80-overlay"></canvas>
+    <div class="start" id="start">
+      <div class="osd">PLAY &#9654; NOV. 18 1986</div>
+      <p>Neem een kort filmpje op (5 tot 15 seconden) van een straat met auto's, fietsers of mensen.</p>
+      <div class="btns">
+        <button class="btn hot" id="liveBtn" type="button" hidden>Start live camera</button>
+        <label class="btn" for="camIn">Film met je camera</label>
+        <label class="btn alt" for="fileIn">Kies foto of video</label>
+      </div>
+    </div>
+  </div>
+  <input id="camIn" type="file" accept="video/*" capture="environment">
+  <input id="fileIn" type="file" accept="image/*,video/*">
+
+  <p class="status" id="status" role="status">Herkenningsmodel laden&hellip;</p>
+
+  <div class="deck">
+    <div class="toggles">
+      <label class="tog"><input type="checkbox" id="tVhs" checked><span>VHS-filter</span></label>
+      <label class="tog"><input type="checkbox" id="tSwap" checked><span>Vervangen</span></label>
+      <label class="tog"><input type="checkbox" id="tBoxes"><span>Toon herkenning</span></label>
+      <label class="tog"><input type="checkbox" id="tMusic"><span>Muziek</span></label>
+    </div>
+    <div class="actions">
+      <button class="btn alt" id="flipBtn" type="button" hidden>Wissel camera</button>
+      <label class="btn alt" for="fileIn" id="newBtn" hidden>Ander beeld</label>
+      <button class="btn hot" id="saveBtn" disabled>Bewaar</button>
+    </div>
+  </div>
+
+  <section class="found">
+    <h2>Herkend in dit beeld</h2>
+    <div class="chips" id="chips"><span class="chip none">Nog niets: kies eerst een beeld.</span></div>
+  </section>
+
+  <section class="lib">
+    <h2>Standaardbibliotheek in dit prototype</h2>
+    <table>
+      <tbody>
+        <tr><td>Auto</td><td>Hoekige hatchback met klapkoplampen en streep</td></tr>
+        <tr><td>Bus, vrachtwagen</td><td>Tweekleurig bestelbusje</td></tr>
+        <tr><td>Fiets, motor</td><td>Neon crossfiets (BMX)</td></tr>
+        <tr><td>Persoon</td><td>Zweetband, zonnebril, walkman met koptelefoon, trainingsjack</td></tr>
+        <tr><td>Telefoon</td><td>Draagbare telefoon met antenne</td></tr>
+        <tr><td>Tv, laptop</td><td>Beeldbuis-tv met houten kast</td></tr>
+        <tr><td>Bank, stoel</td><td>Bruine ribstof</td></tr>
+        <tr><td>Plant</td><td>Hangpot in macram&eacute;</td></tr>
+        <tr><td>Klok</td><td>Wekker met rode cijfers</td></tr>
+        <tr><td>Hond, kat</td><td>Neon zweetbandje</td></tr>
+      </tbody>
+    </table>
+    <p class="note">Dit zijn getekende voorbeelden. In de volgende stap vervangen we ze door echte jaren 80-plaatjes en 3D-modellen. Alles draait op je eigen telefoon; er gaat geen beeld naar een server.</p>
+  </section>
+</div>
+
+<script src="lib/tf.min.js"></script>
+<script src="lib/coco-ssd.min.js"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const out = $('out'), octx = out.getContext('2d');
+  const statusEl = $('status');
+  const setStatus = (t, err) => { statusEl.textContent = t; statusEl.classList.toggle('err', !!err); };
+  window.addEventListener('error', e => setStatus('Fout: ' + (e.message || 'onbekend'), true));
+  window.addEventListener('unhandledrejection', e => setStatus('Fout: ' + ((e.reason && e.reason.message) || 'onbekend'), true));
+
+  // Low-res buffer = the "tape": everything is drawn here, then graded and blown up.
+  const tape = document.createElement('canvas'), tctx = tape.getContext('2d', { willReadFrequently: true });
+
+  let model = null, media = null, kind = null, running = false, detecting = false;
+  let tracks = [], nextId = 1, lastDetect = 0, startTime = performance.now();
+  let seenClasses = new Map();
+
+  const NAMES = { car: 'auto', truck: 'vrachtwagen', bus: 'bus', bicycle: 'fiets', motorcycle: 'motor', person: 'persoon',
+    'cell phone': 'telefoon', tv: 'tv', laptop: 'laptop', couch: 'bank', chair: 'stoel', 'potted plant': 'plant',
+    clock: 'klok', dog: 'hond', cat: 'kat' };
+  const NEON = ['#ff3fa4', '#2de2e6', '#ffb347', '#a66bff', '#3dff8b', '#ff5e3a'];
+  const pick = (id, arr) => arr[id % arr.length];
+
+  // ---------- model ----------
+  (async () => {
+    try {
+      if (!window.tf || !window.cocoSsd) throw new Error('lib');
+      try { await tf.setBackend('webgl'); } catch (e) { await tf.setBackend('cpu'); }
+      await tf.ready();
+      model = await cocoSsd.load({ base: 'lite_mobilenet_v2', modelUrl: 'model/model.json' });
+      setStatus('Klaar. Film de straat of kies een foto.');
+      if (media) runDetect(true);
+    } catch (e) {
+      setStatus('Het herkenningsmodel laadt niet. Herlaad de pagina; de sfeerlaag werkt wel.', true);
+    }
+  })();
+
+  // ---------- input ----------
+  function onFile(ev) {
+    const f = ev.target.files && ev.target.files[0];
+    ev.target.value = '';
+    if (!f) return;
+    stopMedia();
+    const url = URL.createObjectURL(f);
+    tracks = []; seenClasses = new Map(); renderChips();
+    if (f.type.startsWith('image/')) {
+      const img = new Image();
+      img.onload = () => { media = img; kind = 'image'; setup(img.naturalWidth, img.naturalHeight); runDetect(true); };
+      img.onerror = () => setStatus('Deze foto kan ik niet openen. Probeer een JPG of PNG.', true);
+      img.src = url;
+    } else {
+      const v = makeVideo();
+      v.onerror = () => setStatus('Deze video kan ik niet openen. Probeer een MP4 of MOV.', true);
+      v.src = url; v.load(); startVideo(v);
+    }
+  }
+  function makeVideo() {
+    const v = document.createElement('video');
+    v.muted = true; v.defaultMuted = true; v.loop = true; v.playsInline = true; v.autoplay = true; v.preload = 'auto';
+    v.setAttribute('playsinline', ''); v.setAttribute('muted', ''); v.setAttribute('webkit-playsinline', '');
+    // iOS only decodes frames for a video that is in the document
+    v.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:0.01;pointer-events:none';
+    document.body.appendChild(v);
+    return v;
+  }
+  function startVideo(v) {
+    let done = false;
+    const go = () => {
+      if (done || !v.videoWidth) return; done = true;
+      media = v; kind = 'video'; setup(v.videoWidth, v.videoHeight);
+    };
+    v.addEventListener('loadedmetadata', go); v.addEventListener('loadeddata', go); v.addEventListener('playing', go);
+    const p = v.play(); if (p && p.catch) p.catch(() => {});
+  }
+
+  // ---------- live camera ----------
+  let stream = null, facing = 'environment';
+  const canLive = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  if (canLive) { $('liveBtn').hidden = false; }
+  async function startLive() {
+    stopMedia();
+    tracks = []; seenClasses = new Map(); renderChips();
+    setStatus('Camera starten…');
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 720 } } });
+    } catch (e) {
+      const why = e && e.name === 'NotAllowedError' ? 'Je hebt de camera niet toegestaan. Sta hem toe in de instellingen van je browser.' : 'De live camera werkt hier niet. Gebruik "Film met je camera".';
+      setStatus(why, true); return;
+    }
+    const v = makeVideo(); v.loop = false; v.srcObject = stream; live = true;
+    startVideo(v);
+    $('flipBtn').hidden = false;
+  }
+  let live = false;
+  $('liveBtn').addEventListener('click', startLive);
+  $('flipBtn').addEventListener('click', () => { facing = facing === 'environment' ? 'user' : 'environment'; startLive(); });
+
+  $('camIn').addEventListener('change', onFile);
+  $('fileIn').addEventListener('change', onFile);
+
+  function stopMedia() {
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    if (media && media.pause) { media.pause(); if (media.src) URL.revokeObjectURL(media.src); media.srcObject = null; if (media.parentNode) media.remove(); }
+    media = null; kind = null; live = false; $('flipBtn').hidden = true;
+  }
+
+  function setup(w, h) {
+    $('start').hidden = true; $('newBtn').hidden = false; $('saveBtn').disabled = false;
+    const scr = $('screen'); scr.style.aspectRatio = w + ' / ' + h; scr.style.width = 'min(100%, ' + (78 * w / h).toFixed(2) + 'vh)'; scr.style.justifySelf = 'center';
+    const outW = Math.min(1280, w), scale = outW / w;
+    out.width = Math.round(outW); out.height = Math.round(h * scale);
+    const tw = Math.min(560, w);
+    tape.width = Math.round(tw); tape.height = Math.round(h * tw / w);
+    startTime = performance.now();
+    setStatus(model ? (kind === 'video' ? 'Afspelen en herkennen…' : 'Herkennen…') : 'Herkenningsmodel laden…');
+    if (!running) { running = true; requestAnimationFrame(loop); }
+  }
+
+  // ---------- detection + tracking ----------
+  const iou = (a, b) => {
+    const x1 = Math.max(a[0], b[0]), y1 = Math.max(a[1], b[1]);
+    const x2 = Math.min(a[0] + a[2], b[0] + b[2]), y2 = Math.min(a[1] + a[3], b[1] + b[3]);
+    const i = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+    return i / (a[2] * a[3] + b[2] * b[3] - i + 1e-6);
+  };
+  async function runDetect(force) {
+    if (!model || !media || detecting) return;
+    if (!force && kind === 'image') return;
+    detecting = true;
+    try {
+      const preds = await model.detect(media, 20, 0.45);
+      const now = performance.now();
+      const used = new Set();
+      for (const p of preds) {
+        if (!NAMES[p.class]) continue;
+        let best = null, bestScore = 0.15;
+        for (const t of tracks) {
+          if (used.has(t) || t.cls !== p.class) continue;
+          const s = iou(t.target, p.bbox);
+          if (s > bestScore) { best = t; bestScore = s; }
+        }
+        if (best) { best.target = p.bbox.slice(); best.seen = now; used.add(best); }
+        else { const t = { id: nextId++, cls: p.class, box: p.bbox.slice(), target: p.bbox.slice(), seen: now, born: now }; tracks.push(t); used.add(t); }
+        seenClasses.set(p.class, Math.max(seenClasses.get(p.class) || 0, preds.filter(q => q.class === p.class).length));
+      }
+      tracks = tracks.filter(t => now - t.seen < (kind === 'image' ? 1e9 : 700));
+      renderChips();
+      if (kind === 'image') setStatus(tracks.length ? 'Klaar. Bewaar het beeld of kies een ander.' : 'Niets herkend. Probeer een foto met auto’s, fietsen of mensen.');
+      else setStatus(tracks.length ? (live ? 'Live camera: ' : 'Live: ') + tracks.length + ' object' + (tracks.length === 1 ? '' : 'en') + ' vervangen' : 'Afspelen… nog niets herkend');
+    } catch (e) { /* skip a frame */ }
+    detecting = false;
+    lastDetect = performance.now();
+  }
+  function renderChips() {
+    const el = $('chips'); el.textContent = '';
+    if (!seenClasses.size) { const s = document.createElement('span'); s.className = 'chip none'; s.textContent = media ? 'Nog niets herkend.' : 'Nog niets: kies eerst een beeld.'; el.append(s); return; }
+    for (const [c, n] of seenClasses) { const s = document.createElement('span'); s.className = 'chip'; s.textContent = NAMES[c] + (n > 1 ? ' ×' + n : ''); el.append(s); }
+  }
+
+  // ---------- 80s library (drawn) ----------
+  const rr = (c, x, y, w, h, r) => { c.beginPath(); c.roundRect ? c.roundRect(x, y, w, h, r) : c.rect(x, y, w, h); };
+  function wheel(c, cx, cy, r, rim) {
+    c.fillStyle = '#111'; c.beginPath(); c.arc(cx, cy, r, 0, 7); c.fill();
+    c.fillStyle = rim; c.beginPath(); c.arc(cx, cy, r * 0.5, 0, 7); c.fill();
+    c.fillStyle = '#222'; c.beginPath(); c.arc(cx, cy, r * 0.18, 0, 7); c.fill();
+  }
+  const LIB = {
+    car(c, x, y, w, h, id) {
+      const col = pick(id, ['#d7263d', '#f4d35e', '#1b98e0', '#f5f5f5', '#3a3a3a', '#ff3fa4']);
+      const by = y + h * 0.38, bh = h * 0.42;
+      c.fillStyle = col; c.beginPath();
+      c.moveTo(x + w * 0.02, by + bh * 0.25); c.lineTo(x + w * 0.2, by); c.lineTo(x + w * 0.3, y + h * 0.1);
+      c.lineTo(x + w * 0.74, y + h * 0.1); c.lineTo(x + w * 0.9, by); c.lineTo(x + w * 0.99, by + bh * 0.2);
+      c.lineTo(x + w, by + bh); c.lineTo(x, by + bh); c.closePath(); c.fill();
+      c.fillStyle = 'rgba(40,60,90,0.9)'; c.beginPath();
+      c.moveTo(x + w * 0.33, y + h * 0.16); c.lineTo(x + w * 0.5, y + h * 0.16); c.lineTo(x + w * 0.5, by - h * 0.02); c.lineTo(x + w * 0.25, by - h * 0.02); c.closePath(); c.fill();
+      c.beginPath(); c.moveTo(x + w * 0.53, y + h * 0.16); c.lineTo(x + w * 0.72, y + h * 0.16); c.lineTo(x + w * 0.85, by - h * 0.02); c.lineTo(x + w * 0.53, by - h * 0.02); c.closePath(); c.fill();
+      c.fillStyle = '#111'; c.fillRect(x, by + bh * 0.62, w, bh * 0.12);
+      c.fillStyle = pick(id + 2, NEON); c.fillRect(x + w * 0.04, by + bh * 0.4, w * 0.92, bh * 0.08);
+      c.fillStyle = '#fff6c2'; c.fillRect(x + w * 0.93, by + bh * 0.22, w * 0.06, bh * 0.14);
+      c.fillStyle = '#ff2a2a'; c.fillRect(x + w * 0.005, by + bh * 0.3, w * 0.04, bh * 0.16);
+      const r = Math.min(h * 0.17, w * 0.1);
+      wheel(c, x + w * 0.22, by + bh, r, '#c9c9c9'); wheel(c, x + w * 0.8, by + bh, r, '#c9c9c9');
+    },
+    van(c, x, y, w, h, id) {
+      const top = pick(id, ['#f2f2f2', '#f4d35e', '#9ad1d4']), bot = pick(id + 1, ['#d7263d', '#2d6a4f', '#1b98e0', '#e76f51']);
+      rr(c, x + w * 0.02, y + h * 0.06, w * 0.96, h * 0.72, Math.min(w, h) * 0.08); c.fillStyle = bot; c.fill();
+      c.fillStyle = top; c.fillRect(x + w * 0.02, y + h * 0.06 + Math.min(w, h) * 0.04, w * 0.96, h * 0.32);
+      c.fillStyle = 'rgba(40,60,90,0.9)';
+      for (let i = 0; i < 4; i++) c.fillRect(x + w * (0.08 + i * 0.22), y + h * 0.14, w * 0.17, h * 0.18);
+      c.fillStyle = '#fff'; c.fillRect(x + w * 0.02, y + h * 0.44, w * 0.96, h * 0.03);
+      const r = Math.min(h * 0.13, w * 0.08);
+      wheel(c, x + w * 0.2, y + h * 0.8, r, '#bbb'); wheel(c, x + w * 0.8, y + h * 0.8, r, '#bbb');
+    },
+    bmx(c, x, y, w, h, id) {
+      const col = pick(id, NEON), r = Math.min(w * 0.22, h * 0.3), wy = y + h - r - h * 0.02;
+      const ax = x + w * 0.24, bx = x + w * 0.76;
+      c.lineWidth = Math.max(2, r * 0.18); c.strokeStyle = '#111';
+      c.beginPath(); c.arc(ax, wy, r, 0, 7); c.stroke(); c.beginPath(); c.arc(bx, wy, r, 0, 7); c.stroke();
+      c.lineWidth = Math.max(1, r * 0.05); c.strokeStyle = '#ddd';
+      for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; for (const cx of [ax, bx]) { c.beginPath(); c.moveTo(cx, wy); c.lineTo(cx + Math.cos(a) * r, wy + Math.sin(a) * r); c.stroke(); } }
+      c.lineWidth = Math.max(2, r * 0.16); c.strokeStyle = col; c.lineCap = 'round';
+      const px = x + w * 0.46, sy = wy - r * 1.05, hx = x + w * 0.68;
+      c.beginPath(); c.moveTo(ax, wy); c.lineTo(px, wy); c.lineTo(hx, sy); c.lineTo(x + w * 0.4, sy); c.lineTo(ax, wy); c.moveTo(px, wy); c.lineTo(x + w * 0.4, sy); c.moveTo(hx, sy); c.lineTo(bx, wy); c.stroke();
+      c.strokeStyle = '#111'; c.beginPath(); c.moveTo(hx, sy); c.lineTo(hx - r * 0.1, sy - r * 0.6); c.moveTo(hx - r * 0.4, sy - r * 0.6); c.lineTo(hx + r * 0.25, sy - r * 0.6); c.stroke();
+      c.fillStyle = '#111'; rr(c, x + w * 0.34, sy - r * 0.2, w * 0.12, r * 0.18, 4); c.fill();
+      c.fillStyle = pick(id + 3, NEON); rr(c, hx - r * 0.25, sy - r * 0.45, r * 0.35, r * 0.25, 3); c.fill();
+      c.lineCap = 'butt';
+    },
+    person(c, x, y, w, h, id) {
+      const jack = pick(id, ['#a66bff', '#2de2e6', '#ff3fa4', '#1b98e0']), trim = pick(id + 2, ['#ffffff', '#ffb347', '#3dff8b']);
+      const close = h / w < 1.7; // only head and shoulders in view
+      const hx = x + w / 2, headR = close ? Math.min(w * 0.2, h * 0.17) : Math.min(w * 0.22, h * 0.075), headY = y + headR * 1.3;
+      // tracksuit jacket over torso (shoulder pads)
+      const ty = headY + headR * 1.25, th = close ? (y + h - ty) * 0.85 : h * 0.32;
+      c.fillStyle = jack; c.globalAlpha = 0.86; c.beginPath();
+      c.moveTo(x + w * 0.04, ty + th * 0.12); c.lineTo(x + w * 0.96, ty + th * 0.12); c.lineTo(x + w * 0.86, ty + th); c.lineTo(x + w * 0.14, ty + th); c.closePath(); c.fill();
+      c.globalAlpha = 1; c.fillStyle = trim;
+      c.fillRect(x + w * 0.04, ty + th * 0.12, w * 0.92, th * 0.07);
+      c.fillRect(x + w * 0.2, ty + th * 0.12, w * 0.05, th * 0.88); c.fillRect(x + w * 0.75, ty + th * 0.12, w * 0.05, th * 0.88);
+      c.fillStyle = '#111'; c.fillRect(hx - w * 0.01, ty + th * 0.2, w * 0.02, th * 0.8);
+      // walkman on the belt
+      c.fillStyle = '#c0c4c8'; rr(c, x + w * 0.58, ty + th * 0.98, w * 0.22, h * 0.07, 3); c.fill();
+      c.fillStyle = '#ff7b00'; c.fillRect(x + w * 0.6, ty + th * 1.0, w * 0.18, h * 0.015);
+      // headphones
+      c.strokeStyle = '#222'; c.lineWidth = Math.max(2, headR * 0.18);
+      c.beginPath(); c.arc(hx, headY, headR * 1.15, Math.PI * 1.05, Math.PI * 1.95); c.stroke();
+      c.fillStyle = '#ff7b00';
+      c.beginPath(); c.arc(hx - headR * 1.1, headY + headR * 0.1, headR * 0.35, 0, 7); c.fill();
+      c.beginPath(); c.arc(hx + headR * 1.1, headY + headR * 0.1, headR * 0.35, 0, 7); c.fill();
+      // sweatband + shades
+      c.fillStyle = pick(id + 1, NEON); c.fillRect(hx - headR * 1.05, headY - headR * 0.75, headR * 2.1, headR * 0.32);
+      c.fillStyle = '#0b0b0b';
+      rr(c, hx - headR * 0.95, headY - headR * 0.2, headR * 0.85, headR * 0.42, headR * 0.12); c.fill();
+      rr(c, hx + headR * 0.1, headY - headR * 0.2, headR * 0.85, headR * 0.42, headR * 0.12); c.fill();
+      c.fillStyle = 'rgba(255,255,255,0.5)'; c.fillRect(hx - headR * 0.8, headY - headR * 0.12, headR * 0.25, headR * 0.06);
+    },
+    phone(c, x, y, w, h) {
+      const pw = Math.min(w * 0.8, h * 0.35), ph = Math.min(h * 0.85, pw * 2.6), px = x + (w - pw) / 2, py = y + h - ph;
+      c.fillStyle = '#2a2a2a'; rr(c, px, py, pw, ph, pw * 0.12); c.fill();
+      c.fillStyle = '#111'; c.fillRect(px + pw * 0.7, py - ph * 0.3, pw * 0.12, ph * 0.32);
+      c.fillStyle = '#7dff9a'; c.fillRect(px + pw * 0.15, py + ph * 0.12, pw * 0.7, ph * 0.12);
+      c.fillStyle = '#bbb';
+      for (let r = 0; r < 4; r++) for (let k = 0; k < 3; k++) c.fillRect(px + pw * (0.15 + k * 0.25), py + ph * (0.36 + r * 0.13), pw * 0.18, ph * 0.08);
+    },
+    tv(c, x, y, w, h) {
+      c.fillStyle = '#6b3e1f'; rr(c, x, y + h * 0.05, w, h * 0.9, Math.min(w, h) * 0.06); c.fill();
+      c.fillStyle = '#4a2a14'; for (let i = 0; i < 6; i++) c.fillRect(x, y + h * (0.12 + i * 0.14), w, h * 0.012);
+      c.fillStyle = '#1a2a2a'; rr(c, x + w * 0.06, y + h * 0.14, w * 0.68, h * 0.7, Math.min(w, h) * 0.12); c.fill();
+      c.fillStyle = 'rgba(45,226,230,0.35)'; rr(c, x + w * 0.1, y + h * 0.2, w * 0.6, h * 0.58, Math.min(w, h) * 0.1); c.fill();
+      c.fillStyle = '#ccc'; for (let i = 0; i < 3; i++) { c.beginPath(); c.arc(x + w * 0.87, y + h * (0.28 + i * 0.18), Math.min(w, h) * 0.04, 0, 7); c.fill(); }
+    },
+    sofa(c, x, y, w, h) {
+      c.fillStyle = '#7a4a24'; rr(c, x, y, w, h, Math.min(w, h) * 0.12); c.fill();
+      c.strokeStyle = 'rgba(0,0,0,0.25)'; c.lineWidth = Math.max(1, w / 120);
+      for (let i = x + 4; i < x + w; i += Math.max(3, w / 40)) { c.beginPath(); c.moveTo(i, y + 3); c.lineTo(i, y + h - 3); c.stroke(); }
+    },
+    plant(c, x, y, w, h) {
+      c.strokeStyle = '#e9d8b4'; c.lineWidth = Math.max(1.5, w / 50);
+      const top = y, pot = y + h * 0.55;
+      for (const f of [0.2, 0.5, 0.8]) { c.beginPath(); c.moveTo(x + w / 2, top); c.lineTo(x + w * f, pot); c.stroke(); }
+      for (let k = 1; k < 4; k++) { const yy = top + (pot - top) * k / 4; c.beginPath(); c.moveTo(x + w / 2 - w * 0.3 * k / 4, yy); c.lineTo(x + w / 2 + w * 0.3 * k / 4, yy); c.stroke(); }
+      c.fillStyle = '#c96f3b'; rr(c, x + w * 0.2, pot, w * 0.6, h * 0.2, 6); c.fill();
+    },
+    clock(c, x, y, w, h) {
+      c.fillStyle = '#151515'; rr(c, x, y + h * 0.2, w, h * 0.6, 6); c.fill();
+      c.fillStyle = '#ff2a2a'; c.font = 'bold ' + Math.round(h * 0.42) + 'px ui-monospace, monospace'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText('12:00', x + w / 2, y + h / 2); c.textAlign = 'start'; c.textBaseline = 'alphabetic';
+    },
+    pet(c, x, y, w, h, id) {
+      c.fillStyle = pick(id, NEON); c.fillRect(x + w * 0.15, y + h * 0.32, w * 0.4, h * 0.07);
+    }
+  };
+  const MAP = { car: 'car', truck: 'van', bus: 'van', bicycle: 'bmx', motorcycle: 'bmx', person: 'person', 'cell phone': 'phone',
+    tv: 'tv', laptop: 'tv', couch: 'sofa', chair: 'sofa', 'potted plant': 'plant', clock: 'clock', dog: 'pet', cat: 'pet' };
+
+  // ---------- render loop ----------
+  function loop(now) {
+    if (!media) { running = false; return; }
+    if (kind === 'video' && (media.readyState < 2 || !media.videoWidth)) { requestAnimationFrame(loop); return; }
+    const W = tape.width, H = tape.height, sx = W / (kind === 'video' ? media.videoWidth : media.naturalWidth);
+    tctx.drawImage(media, 0, 0, W, H);
+
+    if (kind === 'video' && model && !detecting && now - lastDetect > 90) runDetect();
+
+    const k = 0.35;
+    const order = tracks.slice().sort((a, b) => (a.target[1] + a.target[3]) - (b.target[1] + b.target[3]));
+    for (const t of order) {
+      for (let i = 0; i < 4; i++) t.box[i] += (t.target[i] - t.box[i]) * k;
+      const [bx, by, bw, bh] = t.box.map(v => v * sx);
+      if ($('tSwap').checked) {
+        const fn = LIB[MAP[t.cls]];
+        const fade = Math.min(1, (now - t.born) / 250);
+        tctx.save(); tctx.globalAlpha = fade; fn && fn(tctx, bx, by, bw, bh, t.id); tctx.restore();
+      }
+      if ($('tBoxes').checked) {
+        tctx.strokeStyle = '#2de2e6'; tctx.lineWidth = 1.5; tctx.strokeRect(bx, by, bw, bh);
+        tctx.fillStyle = '#2de2e6'; tctx.font = '11px ui-monospace, monospace'; tctx.fillText(NAMES[t.cls], bx + 3, by + 12);
+      }
+    }
+
+    const vhs = $('tVhs').checked;
+    if (vhs) grade(W, H, now);
+
+    octx.imageSmoothingEnabled = true;
+    octx.drawImage(tape, 0, 0, out.width, out.height);
+    if (vhs) overlay(now);
+    requestAnimationFrame(loop);
+  }
+
+  // colour grade + chroma bleed on the small buffer
+  function grade(W, H, now) {
+    const im = tctx.getImageData(0, 0, W, H), d = im.data, src = new Uint8ClampedArray(d);
+    const shift = 2 + Math.round(Math.sin(now / 700));
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const i = (y * W + x) * 4, j = (y * W + Math.min(W - 1, x + shift)) * 4;
+        let r = src[j], g = src[i + 1], b = src[i + 2];
+        const l = 0.299 * r + 0.587 * g + 0.114 * b;
+        r = l + (r - l) * 1.55; g = l + (g - l) * 1.4; b = l + (b - l) * 1.5;
+        d[i] = r * 1.08 + 10; d[i + 1] = g * 0.98 + 4; d[i + 2] = b * 0.92 + 18;
+      }
+    }
+    tctx.putImageData(im, 0, 0);
+  }
+
+  function overlay(now) {
+    const W = out.width, H = out.height, u = H / 360;
+    octx.fillStyle = 'rgba(0,0,0,0.16)';
+    for (let y = 0; y < H; y += Math.max(2, Math.round(2 * u))) octx.fillRect(0, y, W, Math.max(1, u * 0.7));
+    // rolling tracking band
+    const band = ((now / 22) % (H * 1.6)) - H * 0.3;
+    const g = octx.createLinearGradient(0, band, 0, band + 26 * u);
+    g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.5, 'rgba(255,255,255,0.10)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    octx.fillStyle = g; octx.fillRect(0, band, W, 26 * u);
+    // noise specks
+    octx.fillStyle = 'rgba(255,255,255,0.5)';
+    for (let i = 0; i < 40; i++) octx.fillRect(Math.random() * W, Math.random() * H, (1 + Math.random() * 6) * u, 0.8 * u);
+    // bottom tracking noise
+    octx.fillStyle = 'rgba(255,255,255,0.08)';
+    for (let i = 0; i < 6; i++) octx.fillRect(0, H - (4 + Math.random() * 10) * u, W * Math.random(), u);
+    // vignette
+    const v = octx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
+    v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.55)');
+    octx.fillStyle = v; octx.fillRect(0, 0, W, H);
+    // OSD
+    const fs = Math.round(22 * u);
+    octx.font = fs + 'px VT323, ui-monospace, monospace';
+    octx.fillStyle = '#ffffff'; octx.shadowColor = 'rgba(0,0,0,0.7)'; octx.shadowBlur = 0; octx.shadowOffsetX = 2 * u; octx.shadowOffsetY = 2 * u;
+    if (Math.floor(now / 600) % 2 === 0 || kind === 'image') octx.fillText('PLAY ▶', 18 * u, 30 * u);
+    const s = Math.floor((now - startTime) / 1000), tc = '0:' + String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+    octx.textAlign = 'right'; octx.fillText('SP  ' + tc, W - 18 * u, 30 * u);
+    octx.fillText('NOV. 18 1986', W - 18 * u, H - 18 * u);
+    octx.textAlign = 'left'; octx.fillText('AM 10:24', 18 * u, H - 18 * u);
+    octx.shadowOffsetX = 0; octx.shadowOffsetY = 0;
+  }
+
+  // ---------- synthwave loop (Web Audio) ----------
+  let ac = null, master = null, timer = null, step = 0, nextT = 0;
+  const BPM = 104, s16 = 60 / BPM / 4;
+  const prog = [[45, 57, 60, 64], [41, 53, 57, 60], [43, 55, 59, 62], [40, 52, 55, 59]];
+  const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+  function tone(t, f, dur, type, vol, cutoff) {
+    const o = ac.createOscillator(), gn = ac.createGain(), fl = ac.createBiquadFilter();
+    o.type = type; o.frequency.value = f; fl.type = 'lowpass'; fl.frequency.value = cutoff;
+    gn.gain.setValueAtTime(0.0001, t); gn.gain.exponentialRampToValueAtTime(vol, t + 0.01); gn.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(fl); fl.connect(gn); gn.connect(master); o.start(t); o.stop(t + dur + 0.05);
+  }
+  function snare(t) {
+    const len = 0.18, buf = ac.createBuffer(1, ac.sampleRate * len, ac.sampleRate), ch = buf.getChannelData(0);
+    for (let i = 0; i < ch.length; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / ch.length);
+    const s = ac.createBufferSource(), gn = ac.createGain(), fl = ac.createBiquadFilter();
+    fl.type = 'highpass'; fl.frequency.value = 1200; gn.gain.value = 0.22; s.buffer = buf; s.connect(fl); fl.connect(gn); gn.connect(master); s.start(t);
+  }
+  function kick(t) {
+    const o = ac.createOscillator(), gn = ac.createGain();
+    o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(40, t + 0.2);
+    gn.gain.setValueAtTime(0.5, t); gn.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
+    o.connect(gn); gn.connect(master); o.start(t); o.stop(t + 0.3);
+  }
+  function schedule() {
+    while (nextT < ac.currentTime + 0.12) {
+      const bar = Math.floor(step / 16) % 4, st = step % 16, ch = prog[bar];
+      if (st % 2 === 0) tone(nextT, hz(ch[0] - 12), s16 * 1.8, 'sawtooth', 0.16, 600);
+      tone(nextT, hz(ch[1 + (st % 3)] + 12), s16 * 0.9, 'square', 0.035, 2600);
+      if (st === 0) for (const n of ch.slice(1)) tone(nextT, hz(n), s16 * 15, 'sawtooth', 0.025, 1400);
+      if (st % 4 === 0) kick(nextT);
+      if (st === 4 || st === 12) snare(nextT);
+      nextT += s16; step++;
+    }
+  }
+  $('tMusic').addEventListener('change', e => {
+    try {
+      if (e.target.checked) {
+        if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); master = ac.createGain(); master.gain.value = 0.7; master.connect(ac.destination); }
+        ac.resume(); nextT = ac.currentTime + 0.05; step = 0; timer = setInterval(schedule, 25);
+      } else { clearInterval(timer); if (ac) ac.suspend(); }
+    } catch (err) { e.target.checked = false; }
+  });
+
+  // ---------- save ----------
+  let downloads = null;
+  if (window.claude && claude.use) claude.use('downloads').then(d => { downloads = d; }).catch(() => {});
+  const saveBtn = $('saveBtn');
+  async function hand(filename, blob) {
+    if (!downloads) { setStatus('Opslaan werkt hier niet. Maak een schermopname van je telefoon.', true); return; }
+    try { await downloads.save({ filename, data: blob }); setStatus('Bewaard.'); }
+    catch (e) { setStatus(e && e.code === 'declined' ? 'Niet bewaard.' : 'Opslaan lukte niet. Maak een schermopname.', true); }
+  }
+  saveBtn.addEventListener('click', () => {
+    if (!media) return;
+    if (kind === 'image') { out.toBlob(b => b && hand('jaren80.png', b), 'image/png'); return; }
+    if (!out.captureStream || !window.MediaRecorder) { setStatus('Video opnemen kan niet in deze browser. Maak een schermopname.', true); return; }
+    const types = ['video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
+    const type = types.find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
+    const ext = type.startsWith('video/mp4') ? 'mp4' : 'webm';
+    const rec = new MediaRecorder(out.captureStream(30), type ? { mimeType: type } : undefined), parts = [];
+    rec.ondataavailable = e => e.data.size && parts.push(e.data);
+    rec.onstop = () => { saveBtn.disabled = false; saveBtn.textContent = 'Bewaar'; hand('jaren80.' + ext, new Blob(parts, { type: type || 'video/webm' })); };
+    if (!live) { media.currentTime = 0; media.play().catch(() => {}); }
+    const ms = live ? 10000 : Math.min(15, isFinite(media.duration) && media.duration ? media.duration : 10) * 1000;
+    saveBtn.disabled = true; saveBtn.textContent = 'Opnemen…'; setStatus('Opnemen, even wachten…');
+    rec.start(); setTimeout(() => rec.state !== 'inactive' && rec.stop(), ms);
+  });
+})();
+</script>
+
+</body></html>
