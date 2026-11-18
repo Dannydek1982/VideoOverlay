@@ -57,6 +57,7 @@ canvas#out { width: 100%; height: 100%; display: block; object-fit: contain; bac
 .start p { margin: 0; color: var(--muted); max-width: 40ch; justify-self: center; }
 .btns { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
 .btn {
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
   font: 600 15px/1 var(--f-body); color: var(--night); background: var(--cyan);
   border: 0; border-radius: 999px; padding: 13px 20px; cursor: pointer;
   display: inline-flex; align-items: center; gap: 8px;
@@ -64,6 +65,7 @@ canvas#out { width: 100%; height: 100%; display: block; object-fit: contain; bac
 .btn.alt { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--muted); }
 .btn.hot { background: var(--hot); color: #fff; }
 .btn:focus-visible, .tog input:focus-visible + span { outline: 3px solid var(--sun); outline-offset: 2px; }
+.btn:active { transform: scale(0.97); }
 .btn[disabled] { opacity: 0.45; cursor: not-allowed; }
 input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 .deck {
@@ -117,7 +119,7 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; poin
   <input id="camIn" type="file" accept="video/*" capture="environment">
   <input id="fileIn" type="file" accept="image/*,video/*">
 
-  <p class="status" id="status" role="status">Herkenningsmodel laden&hellip;</p>
+  <p class="status" id="status" role="status">Klaar. Tik op Start live camera.</p>
 
   <div class="deck">
     <div class="toggles">
@@ -183,18 +185,25 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; poin
   const pick = (id, arr) => arr[id % arr.length];
 
   // ---------- model ----------
-  (async () => {
+  // Loaded only after the first tap: on iPhones the first load freezes the page for a while.
+  let modelStarted = false;
+  function loadModel() {
+    if (modelStarted) return; modelStarted = true;
+    setStatus('Herkenning laden… (eerste keer even geduld)');
+    setTimeout(realLoad, 300);
+  }
+  const realLoad = async () => {
     try {
       if (!window.tf || !window.cocoSsd) throw new Error('lib');
       try { await tf.setBackend('webgl'); } catch (e) { await tf.setBackend('cpu'); }
       await tf.ready();
       model = await cocoSsd.load({ base: 'lite_mobilenet_v2', modelUrl: 'model/model.json' });
-      setStatus('Klaar. Film de straat of kies een foto.');
+      setStatus(media ? 'Klaar, herkennen…' : 'Klaar. Film de straat of kies een foto.');
       if (media) runDetect(true);
     } catch (e) {
       setStatus('Het herkenningsmodel laadt niet. Herlaad de pagina; de sfeerlaag werkt wel.', true);
     }
-  })();
+  };
 
   // ---------- input ----------
   function onFile(ev) {
@@ -206,7 +215,7 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; poin
     tracks = []; seenClasses = new Map(); renderChips();
     if (f.type.startsWith('image/')) {
       const img = new Image();
-      img.onload = () => { media = img; kind = 'image'; setup(img.naturalWidth, img.naturalHeight); runDetect(true); };
+      img.onload = () => { media = img; kind = 'image'; setup(img.naturalWidth, img.naturalHeight); loadModel(); runDetect(true); };
       img.onerror = () => setStatus('Deze foto kan ik niet openen. Probeer een JPG of PNG.', true);
       img.src = url;
     } else {
@@ -228,7 +237,7 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; poin
     let done = false;
     const go = () => {
       if (done || !v.videoWidth) return; done = true;
-      media = v; kind = 'video'; setup(v.videoWidth, v.videoHeight);
+      media = v; kind = 'video'; setup(v.videoWidth, v.videoHeight); loadModel();
     };
     v.addEventListener('loadedmetadata', go); v.addEventListener('loadeddata', go); v.addEventListener('playing', go);
     const p = v.play(); if (p && p.catch) p.catch(() => {});
@@ -273,7 +282,7 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; poin
     const tw = Math.min(560, w);
     tape.width = Math.round(tw); tape.height = Math.round(h * tw / w);
     startTime = performance.now();
-    setStatus(model ? (kind === 'video' ? 'Afspelen en herkennen…' : 'Herkennen…') : 'Herkenningsmodel laden…');
+    setStatus(model ? (kind === 'video' ? 'Afspelen en herkennen…' : 'Herkennen…') : 'Herkenning laden… (eerste keer even geduld)');
     if (!running) { running = true; requestAnimationFrame(loop); }
   }
 
